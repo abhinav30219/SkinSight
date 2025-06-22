@@ -44,25 +44,163 @@ source venv/bin/activate  # On macOS/Linux
 pip install -r requirements.txt
 ```
 
-### Running Inference
+### Dataset Setup
 
-```bash
-# Launch the web interface
-cd inference
-python app_simple.py --model-path ../training/best_model
+The HAM10000 dataset should be organized as follows:
+```
+../HAM10000/
+├── HAM10000_metadata.csv
+├── HAM10000_images_part_1/
+│   ├── ISIC_0024306.jpg
+│   └── ...
+└── HAM10000_images_part_2/
+    ├── ISIC_0029306.jpg
+    └── ...
 ```
 
-This will start a web server at http://localhost:7860 where you can upload dermatoscopic images for diagnosis.
+## Training the Original ViT Model
 
-### Training a Model
+### Step 1: One-Command Training (Recommended)
+
+The easiest way to train the original ViT model is to use the provided setup script:
 
 ```bash
-# Train a specific model
-cd training
-python train_simple.py --config configs/vit_base.yaml
+# Make the script executable
+chmod +x setup_and_train.sh
 
-# Compare multiple models
-python train_all_models.py --configs_dir configs
+# Run the training script
+./setup_and_train.sh
+```
+
+This script will:
+1. Set up the virtual environment
+2. Install all required dependencies
+3. Train the ViT-Base model using the HAM10000 dataset
+4. Save the best model to `training/best_model/`
+
+### Step 2: Manual Training (For Custom Settings)
+
+If you want more control over the training process:
+
+```bash
+# Navigate to training directory
+cd training
+
+# Train with default settings
+python train_simple.py --config config.yaml
+
+# Train with specific device
+python train_simple.py --config config.yaml --device mps  # For Apple Silicon
+python train_simple.py --config config.yaml --device cuda  # For NVIDIA GPUs
+python train_simple.py --config config.yaml --device cpu  # For CPU-only training
+
+# Resume training from a checkpoint
+python train_simple.py --config config.yaml --resume checkpoints/checkpoint-epoch5
+```
+
+### Step 3: Monitor Training Progress
+
+During training, you'll see progress logs like:
+
+```
+Epoch 1/10: 100%|██████████| 3505/3505 [07:19<00:00, 7.97it/s, loss=2.1733, lr=1.46e-06]
+Validation - Accuracy: 0.3054, F1 Macro: 0.1876, Loss: 1.9654
+Saving checkpoint to: checkpoints/checkpoint-epoch1.pt
+```
+
+The best model will be automatically saved to `training/best_model/` based on validation performance.
+
+## Running Inference
+
+### Option 1: Web Interface (Recommended)
+
+The easiest way to interact with the model is through the Gradio web interface:
+
+```bash
+# Navigate to inference directory
+cd inference
+
+# Launch the web interface with the trained model
+python app_simple.py --model-path ../training/best_model --port 7860
+
+# Launch with public sharing (creates a public URL)
+python app_simple.py --model-path ../training/best_model --share
+
+# Use a specific device
+python app_simple.py --model-path ../training/best_model --device cpu
+```
+
+Then open your browser to:
+- Local access: http://localhost:7860
+- Network access: http://your-ip-address:7860
+
+### Option 2: Python API (For Programmatic Use)
+
+```python
+from model.simple_vit_adapter import SimpleViTDiagnostic
+from PIL import Image
+
+# Load the model
+model = SimpleViTDiagnostic.from_pretrained("training/best_model", device="mps")
+
+# Load an image
+image = Image.open("path/to/your/image.jpg")
+
+# Get diagnosis
+result = model.diagnose(image, return_probabilities=True)
+
+# Print results
+print(f"Diagnosis: {result['diagnosis']}")
+print(f"Confidence: {result['confidence']:.2%}")
+print(f"Requires professional review: {result['requires_professional_review']}")
+
+# Print probability breakdown
+if 'probabilities' in result:
+    print("\nProbabilities:")
+    for condition, prob in sorted(result['probabilities'].items(), key=lambda x: x[1], reverse=True):
+        print(f"  {condition}: {prob:.2%}")
+```
+
+### Option 3: Batch Inference
+
+For processing multiple images:
+
+```python
+import os
+from model.simple_vit_adapter import SimpleViTDiagnostic
+from PIL import Image
+import pandas as pd
+
+# Load the model
+model = SimpleViTDiagnostic.from_pretrained("training/best_model", device="mps")
+
+# Directory with images
+image_dir = "path/to/images"
+image_files = [f for f in os.listdir(image_dir) if f.endswith(('.jpg', '.jpeg', '.png'))]
+
+# Process all images
+results = []
+for image_file in image_files:
+    image_path = os.path.join(image_dir, image_file)
+    image = Image.open(image_path)
+    
+    # Get diagnosis
+    result = model.diagnose(image)
+    
+    # Store results
+    results.append({
+        'image': image_file,
+        'diagnosis': result['diagnosis'],
+        'confidence': result['confidence'],
+        'requires_review': result['requires_professional_review']
+    })
+
+# Convert to DataFrame for analysis
+df = pd.DataFrame(results)
+print(df.head())
+
+# Save results to CSV
+df.to_csv("batch_inference_results.csv", index=False)
 ```
 
 ## Project Structure
@@ -99,13 +237,29 @@ This project uses the HAM10000 dataset, which contains 10,015 dermatoscopic imag
 - **Vascular lesions (vasc)** - Angiomas, angiokeratomas
 - **Dermatofibroma (df)** - Benign skin tumors
 
-## Model Comparison
+## Comparing Multiple Models
 
-![Accuracy Comparison](https://raw.githubusercontent.com/abhinav30219/SkinSight/main/comparison_results/accuracy_comparison.png)
+To train and compare all models:
+
+```bash
+# Run the comparison script
+./compare_models.sh
+
+# Train specific models only
+./compare_models.sh vit_base biomedclip
+```
+
+This will:
+1. Train each model with its configuration
+2. Generate performance metrics
+3. Create comparison visualizations
+4. Output a detailed comparison report in `comparison_results/`
+
+The comparison results will include accuracy and F1-score comparisons, training time analysis, and a comprehensive report recommending the best model for different use cases.
 
 ## Citation
 
-If you use this code, please cite:
+If you use this code in your research or project, please cite both the original dataset and this repository:
 
 ```bibtex
 @article{tschandl2018ham10000,
@@ -116,6 +270,13 @@ If you use this code, please cite:
   number={1},
   pages={1--9},
   year={2018}
+}
+
+@software{agarwal2025skinsight,
+  author = {Agarwal, Abhinav},
+  title = {SkinSight: Multimodal Skin Lesion Diagnosis},
+  year = {2025},
+  url = {https://github.com/abhinav30219/SkinSight}
 }
 ```
 
