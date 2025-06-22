@@ -1,0 +1,75 @@
+# Training configuration for ViT-Large skin lesion classifier
+
+# Model configuration
+model:
+  name: "google/vit-large-patch16-224"
+  model_type: "simple_vit"
+  num_classes: 7
+  dropout_rate: 0.1
+  use_augmentation: true
+
+# Data configuration
+data:
+  metadata_path: "../../HAM10000/HAM10000_metadata.csv"
+  image_dirs:
+    - "../../HAM10000/HAM10000_images_part_1"
+    - "../../HAM10000/HAM10000_images_part_2"
+  split_path: "data_splits.json"
+  batch_size: 1  # Reduced for larger model
+  num_workers: 0  # Set to 0 for MPS compatibility
+  use_weighted_sampling: true
+  input_size: 224  # Standard ViT size
+
+# Training configuration
+training:
+  num_epochs: 10
+  learning_rate: 0.00001  # Lower LR for large model
+  warmup_steps: 300
+  gradient_accumulation_steps: 4  # Increased for effective batch size
+  gradient_checkpointing: true
+  fp16: true
+  eval_steps: 100
+  save_steps: 500
+  save_epochs: 2
+  logging_steps: 10
+  early_stopping_patience: 3
+  max_grad_norm: 1.0
+  
+# Optimizer configuration
+optimizer:
+  type: "adamw"
+  weight_decay: 0.01
+  adam_epsilon: 0.00000001  # 1e-8
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+
+# Scheduler configuration
+scheduler:
+  type: "cosine"
+  num_warmup_steps: 500
+  num_training_steps: null  # Will be calculated based on dataset size
+
+# Output configuration
+output:
+  model_dir: "./checkpoints/vit_large"
+  log_dir: "./logs/vit_large"
+  best_model_dir: "./best_model_vit_large"
+
+# Device configuration
+device:
+  type: "mps"  # Use "cuda" for NVIDIA GPUs, "cpu" for CPU
+  mixed_precision: true
+
+# Evaluation configuration
+evaluation:
+  compute_metrics: true
+  metrics:
+    - "accuracy"
+    - "f1_macro"
+    - "f1_weighted"
+    - "precision_macro"
+    - "recall_macro"
+    - "confusion_matrix"
+
+# Seed for reproducibility
+seed: 42

@@ -1,0 +1,15 @@
+{
+  "os":  "macOS-15.1.1-arm64-arm-64bit",
+  "python":  "CPython 3.12.7",
+  "startedAt":  "2025-06-19T02:21:35.461876Z",
+  "args":  [
+    "--config",
+    "config.yaml"
+  ],
+  "program":  "/Users/abhinavagarwal/Downloads/Alex_Infanti_Code/skin-lesion-diagnosis/training/train_vqa.py",
+  "codePath":  "train_vqa.py",
+  "root":  "/Users/abhinavagarwal/Downloads/Alex_Infanti_Code/skin-lesion-diagnosis/training",
+  "host":  "Abhinavs-MacBook-Pro.local",
+  "executable":  "/opt/anaconda3/bin/python",
+  "codePathLocal":  "train_vqa.py"
+}

@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Model files
+*.pth
+*.pt
+*.bin
+*.ckpt
+*.safetensors
+checkpoints/
+best_model/
+training/checkpoints/
+training/best_model/
+training/logs/
+
+# Data
+data_splits.json
+*.csv
+*.jpg
+*.png
+*.jpeg
+
+# Analysis outputs
+analysis/analysis_results/
+*.png
+*.pdf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+tensorboard/
+
+# Cache
+.cache/
+huggingface/
+.huggingface/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Exclude large datasets
+HAM10000/
+../HAM10000/
